@@ -1,0 +1,137 @@
+diff -ruN sqlite-autoconf-3370200/sqlite3.c sqlite-autoconf-3370200+/sqlite3.c
+--- sqlite-autoconf-3370200/sqlite3.c	2022-01-06 22:43:54.000000000 +0900
++++ sqlite-autoconf-3370200+/sqlite3.c	2022-01-24 22:24:57.849096000 +0900
+@@ -1,3 +1,5 @@
++#define  EXT_SUFFIX	".sqlite3"
++
+ /******************************************************************************
+ ** This file is an amalgamation of many separate C source files from SQLite
+ ** version 3.37.2.  By combining all the individual C code files into this
+@@ -452,7 +454,7 @@
+ ** [sqlite3_libversion_number()], [sqlite3_sourceid()],
+ ** [sqlite_version()] and [sqlite_source_id()].
+ */
+-#define SQLITE_VERSION        "3.37.2"
++#define SQLITE_VERSION        "3.37.2+"
+ #define SQLITE_VERSION_NUMBER 3037002
+ #define SQLITE_SOURCE_ID      "2022-01-06 13:25:41 872ba256cbf61d9290b571c0e6d82a20c224ca3ad82971edc46b29818d5d17a0"
+ 
+@@ -16600,6 +16602,7 @@
+ #ifdef SQLITE_USER_AUTHENTICATION
+   sqlite3_userauth auth;        /* User authentication information */
+ #endif
++    char*  dirPath;
+ };
+ 
+ /*
+@@ -112324,7 +112327,22 @@
+     }
+     assert( pVfs );
+     flags |= SQLITE_OPEN_MAIN_DB;
+-    rc = sqlite3BtreeOpen(pVfs, zPath, db, &pNew->pBt, 0, flags);
++//    rc = sqlite3BtreeOpen(pVfs, zPath, db, &pNew->pBt, 0, flags);
++    if (zPath[0] == 0) {
++    } else if (index (zPath, '/') || zPath[0] == '.') {
++      zPath[0] = 0;
++    }
++    if (db->dirPath && zPath[0] != 0) {
++      char*  t;
++      t = sqlite3Malloc (strlen (db->dirPath) + strlen (zPath) + sizeof (EXT_SUFFIX) + 1);
++      strcpy (t, db->dirPath);
++      strcat (t, zPath);
++      strcat (t, EXT_SUFFIX);
++      rc = sqlite3BtreeOpen(pVfs, t, db, &aNew->pBt, 0, flags);
++      sqlite3_free (t);
++    } else {
++      rc = SQLITE_ERROR;
++    }
+     db->nDb++;
+     pNew->zDbSName = sqlite3DbStrDup(db, zName);
+   }
+@@ -168001,6 +168019,10 @@
+   if( db->lookaside.bMalloced ){
+     sqlite3_free(db->lookaside.pStart);
+   }
++  if (db->dirPath) {
++      sqlite3_free (db->dirPath);
++      db->dirPath = NULL;
++  }
+   sqlite3_free(db);
+ }
+ 
+@@ -169063,6 +169085,46 @@
+ }
+ 
+ 
++static void  setDirPath (sqlite3* db, const char* zFilename) {
++    char*  c;
++    size_t  n;
++
++//    assert (db->dirPath == NULL);
++    if (db->dirPath) {
++	sqlite3_free (db->dirPath);
++	db->dirPath = NULL;
++    }
++    if (zFilename && zFilename[0]) {
++	c = rindex (zFilename, '/');
++	if (c) {
++	    n = c + 1 - zFilename;
++	    db->dirPath = sqlite3Malloc (n + 1);
++	    memcpy (db->dirPath, zFilename, n);
++	    db->dirPath[n] = 0;
++	}
++    }
++}
++
++SQLITE_API void  sqlite3_set_dbdir (sqlite3* db, const char* dir) {
++    int  n;
++    if (db->dirPath) {
++	sqlite3_free (db->dirPath);
++	db->dirPath = NULL;
++    }
++    if (dir && dir[0]) {
++	n = strlen (dir);
++	if (dir[n - 1] == '/') {
++	    db->dirPath = sqlite3Malloc (n + 1);
++	    strncpy (db->dirPath, dir, n + 1);
++	} else {
++	    db->dirPath = sqlite3Malloc (n + 2);
++	    strncpy (db->dirPath, dir, n + 2);
++	    db->dirPath[n] = '/';
++	    db->dirPath[n + 1] = 0;
++	}
++    }
++}
++
+ /*
+ ** Checkpoint database zDb. If zDb is NULL, or if the buffer zDb points
+ ** to contains a zero-length string, all attached databases are
+@@ -169959,6 +170021,7 @@
+   }
+ 
+   /* Open the backend database driver */
++  setDirPath (db, zOpen);
+   rc = sqlite3BtreeOpen(db->pVfs, zOpen, db, &db->aDb[0].pBt, 0,
+                         flags | SQLITE_OPEN_MAIN_DB);
+   if( rc!=SQLITE_OK ){
+diff -ruN sqlite-autoconf-3370200/sqlite3.h sqlite-autoconf-3370200+/sqlite3.h
+--- sqlite-autoconf-3370200/sqlite3.h	2022-01-06 22:43:54.000000000 +0900
++++ sqlite-autoconf-3370200+/sqlite3.h	2022-01-24 22:25:40.760802000 +0900
+@@ -146,7 +146,7 @@
+ ** [sqlite3_libversion_number()], [sqlite3_sourceid()],
+ ** [sqlite_version()] and [sqlite_source_id()].
+ */
+-#define SQLITE_VERSION        "3.37.2"
++#define SQLITE_VERSION        "3.37.2+"
+ #define SQLITE_VERSION_NUMBER 3037002
+ #define SQLITE_SOURCE_ID      "2022-01-06 13:25:41 872ba256cbf61d9290b571c0e6d82a20c224ca3ad82971edc46b29818d5d17a0"
+ 
+@@ -10182,6 +10182,8 @@
+ #define PARTLY_WITHIN    1   /* Object partially overlaps query region */
+ #define FULLY_WITHIN     2   /* Object fully contained within query region */
+ 
++
++SQLITE_API void  sqlite3_set_dbdir (sqlite3* db, const char* dir);
+ 
+ #ifdef __cplusplus
+ }  /* end of the 'extern "C"' block */

@@ -1,0 +1,69 @@
+MSRCS += ml-csv.cc
+MSRCS += ml-amqp.cc
+MLDADD2 += -lrabbitmq
+MSRCS += ml-regexp.cc
+MSRCS += ml-js.cc
+MSRCS += ml-localdb.cc
+MSRCS += ml-eliq.cc
+MSRCS += ml-totp.cc
+MSRCS += ml-sha3.cc
+MSRCS += sha3.c
+MSRCS += ml-crypto.cc bf.cc
+MSRCS += ml-neon.cc
+MLDADD2 += -lneon
+MSRCS += ml-texp.cc
+MSRCS += ml-imagesize.cc
+MSRCS += ml-security.cc
+MLDADD2 += -lmd
+.ifdef UTF8JP
+MSRCS += ml-japanese.cc
+.endif
+MSRCS += diff.cc
+MSRCS += ml-addon.cc
+MSRCS += ml-apache.cc
+MSRCS += ml-bool.cc
+MSRCS += ml-config.cc
+MSRCS += ml-cookielogin.cc
+MSRCS += ml-core.cc
+MSRCS += ml-data.cc
+MSRCS += ml-db.cc
+.ifdef BDB5
+MSRCS += ml-db5.cc
+.ifdef BDB5SQLITE
+.else
+MLDADD += -ldb-5
+.endif
+.endif
+MSRCS += ml-debug.cc
+MSRCS += ml-defun.cc
+MSRCS += ml-diff.cc
+MSRCS += ml-encode.cc
+# MSRCS += ml-event.cc
+# MLDADD += -levent
+MSRCS += ml-formvar.cc
+MSRCS += ml-http.cc
+MSRCS += ml-include.cc
+MSRCS += ml-inet.cc
+MSRCS += ml-json.cc
+MSRCS += ml-list.cc
+MSRCS += ml-math.cc
+#MSRCS += ml-memcached.cc
+#MLDADD += -lmemcached
+MSRCS += ml-motor.cc
+MSRCS += ml-sendmail.cc
+MSRCS += ml-sqlite3.cc
+.ifdef BDB5SQLITE
+MLDADD += -ldb_sql-5
+.else
+MLDADD += ../ext/libsqlite3.a
+.endif
+MSRCS += ml-store.cc
+MSRCS += ml-string.cc
+MSRCS += ml-struct.cc
+MSRCS += ml-tcpserver.cc
+MSRCS += ml-time.cc
+MSRCS += ml-variable.cc
+MSRCS += ml-wiki.cc
+MSRCS += ml-xml.cc
+MLDADD += -lexpat
+MSRCS += motor-function.cc
